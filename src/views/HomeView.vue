@@ -123,8 +123,8 @@ const timeIntervalLabel: Record<number, string> = {
 
 const currentIndex = ref<number>(0)
 const updateFrequency = ref<number>(200)
-const interval = ref<number>()
-const timeInterval = ref<any>(0)
+let interval = 0
+const timeInterval = ref<number>(0)
 const isPlayed = ref<boolean>(false)
 const dateRange = ref<DateRangeType>({ start: new Date(2022, 6, 1), end: new Date(2022, 6, 2)})
 const weatherMeta = ref<DateMeta[]>([])
@@ -138,8 +138,7 @@ const isLastMeta = computed(() => {
 
 function onClickPrevDay() {
   if(isPlayed.value) {
-    isPlayed.value = false
-    clearInterval(interval.value) 
+    stopPlaying()
   }
   if(currentIndex.value - 24 <= 0) {
     currentIndex.value = 0
@@ -150,19 +149,17 @@ function onClickPrevDay() {
 
 function onClickPrev() {
   if(isPlayed.value) {
-    isPlayed.value = false
-    clearInterval(interval.value) 
+    stopPlaying()
   }
   currentIndex.value--
 }
 
 function onTogglePlay() {
   if(isPlayed.value) {
-    isPlayed.value = false
-    clearInterval(interval.value) 
+    stopPlaying()
   } else{
     isPlayed.value = true
-    interval.value = setInterval(() => {
+    interval = setInterval(() => {
       currentIndex.value++;
     }, updateFrequency.value);
   }
@@ -170,16 +167,14 @@ function onTogglePlay() {
 
 function onClickNext() {
   if(isPlayed.value) {
-    isPlayed.value = false
-    clearInterval(interval.value) 
+    stopPlaying()
   }
   currentIndex.value++
 }
 
 function onClickNextDay() {
   if(isPlayed.value) {
-    isPlayed.value = false
-    clearInterval(interval.value) 
+    stopPlaying()
   }
   if(currentIndex.value + 24 > weatherMeta.value.length - 1) {
     currentIndex.value = weatherMeta.value.length - 1
@@ -213,14 +208,24 @@ function calculateDateRange(dateRange: DateRangeType, timeInterval: number) {
   }
 }
 
+function stopPlaying() {
+  clearInterval(interval)
+  isPlayed.value = false
+}
+
 watchEffect(() => {
   if(currentIndex.value >= weatherMeta.value.length - 1) {
-    isPlayed.value = false
-    clearInterval(interval.value)
+    stopPlaying()
   }
 })
 watchEffect(() => {
   calculateDateRange(dateRange.value, +timeIntervalLabel[timeInterval.value])
+  stopPlaying()
+})
+watchEffect(() => {
+  if(updateFrequency.value) {
+    stopPlaying()
+  }
 })
 </script>
 
@@ -236,6 +241,6 @@ watchEffect(() => {
     max-width: 8rem;
   }
   .current-date {
-    color: rgb(var(--v-theme-success));
+    color: rgb(var(--v-theme-primary));
   }
 </style>
