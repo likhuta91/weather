@@ -162,7 +162,7 @@ function calculateDateRange(dateRange: DateRangeType) {
   );
   for (let i = parsedStartDate; i.isBefore(parsedEndDate); i.add(1, "days")) {
     const date = i.format('DD-MM-YYYY');
-    for (let hour = 0; hour < 24; hour = hour + 4) {
+    for (let hour = 0; hour < 24; hour = hour + 2) {
       const time = hour < 10 ? `0${hour}` : `${hour}`;
       const url = `https://www.meteociel.fr/cartes_obs/archives/${date}/temp_sp-${time}.png`
       weatherMeta.value.push({
@@ -193,8 +193,8 @@ watchEffect(() => {
     margin: 0 auto;
   }
   .period-input {
-    width: 7rem;
-    max-width: 7rem;
+    width: 8rem;
+    max-width: 8rem;
   }
   .current-date {
     color: rgb(var(--v-theme-success));
