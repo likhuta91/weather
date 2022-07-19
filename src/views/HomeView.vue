@@ -3,7 +3,7 @@
       <v-card elevation="0">
         <v-row>
           <v-col sm="7" cols="12" class="d-flex flex-column">
-            <h1 class="text-h3 mx-auto">Temperature in Spain</h1>
+            <h1 class="text-h3 mx-auto">Temperature in {{selectedRegionTitle}}</h1>
             <h2 class="text-h4 font-weight-bold mx-auto current-date">
               {{currentWeather.date}}
               {{currentWeather.time}}:00
@@ -12,6 +12,7 @@
               class="weather-image"
               :src='currentWeather.url'
               :lazy-src="nextWeather.url"
+              transition="fade-transition"
             />
           </v-col>
           <v-col sm="5" cols="12">
@@ -23,6 +24,19 @@
                 class="d-flex flex-column justify-center my-2"
                 order="2"
                 order-sm="1"
+              >
+                <v-select
+                  v-model:model-value="selectedRegion"
+                  :items="regions"
+                  variant="outlined"
+                  color="primary"
+                />
+              </v-col>
+              <v-col
+                cols="12"
+                class="d-flex flex-column justify-center my-2"
+                order="3"
+                order-sm="2"
               >
                 <div class="text-body-1">Time range (hours)</div>
                 <v-slider
@@ -39,8 +53,8 @@
               <v-col
                 cols="12"
                 class="d-flex flex-column justify-center my-2"
-                order="3"
-                order-sm="2"
+                order="4"
+                order-sm="3"
               >
                 <div class="text-body-1">Update frequency (milliseconds)</div>
                 <v-slider
@@ -60,6 +74,8 @@
                       density="compact"
                       type="number"
                       style="width: 100px"
+                      variant="outlined"
+                      color="primary"
                     ></v-text-field>
                   </template>
                 </v-slider>
@@ -67,8 +83,8 @@
               <v-col
                 cols="12"
                 class="d-flex justify-center my-2"
-                order="4"
-                order-sm="3"
+                order="5"
+                order-sm="4"
               >
                 <date-picker
                   v-model="dateRange"
@@ -81,7 +97,7 @@
                 cols="12"
                 class="d-flex justify-center my-2"
                 order="1"
-                order-sm="4"
+                order-sm="5"
               >
                 <v-btn
                   :disabled="currentIndex === 0"
@@ -147,7 +163,13 @@ const timeIntervalLabel: Record<number, string> = {
   6: '12',
   7: '24',
 }
+const regions: {value: string, title: string}[] = [
+  {value: 'sp', title: 'Spain'},
+  {value: 'eur2', title: 'Europe'},
+  {value: 'it', title: 'Italy'},
+]
 
+const selectedRegion = ref<string>(regions[0].value)
 const currentIndex = ref<number>(0)
 const updateFrequency = ref<number>(200)
 let interval = 0
@@ -166,6 +188,9 @@ const nextWeather = computed(() => {
 })
 const isLastMeta = computed(() => {
   return currentIndex.value === weatherMeta.value.length - 1
+})
+const selectedRegionTitle = computed(() => {
+  return regions.find(el => el.value === selectedRegion.value)?.title
 })
 
 function onClickReturnToStart() {
@@ -224,7 +249,7 @@ function onClickNextDay() {
   }
 }
 
-function calculateDateRange(dateRange: DateRangeType, timeInterval: number) {
+function calculateDateRange(dateRange: DateRangeType, timeInterval: number, region: string) {
   currentIndex.value = 0
   weatherMeta.value = []
   const parsedStartDate = moment(
@@ -240,7 +265,7 @@ function calculateDateRange(dateRange: DateRangeType, timeInterval: number) {
     const hoursInDay = i.isSame(parsedEndDate) ? new Date().getHours() - 2: 24
     for (let hour = 0; hour < hoursInDay; hour = hour + timeInterval) {
       const time = hour < 10 ? `0${hour}` : `${hour}`;
-      const url = `https://www.meteociel.fr/cartes_obs/archives/${date}/temp_sp-${time}.png`
+      const url = `https://www.meteociel.fr/cartes_obs/archives/${date}/temp_${region}-${time}.png`
       weatherMeta.value.push({
         url,
         date,
@@ -261,7 +286,7 @@ watchEffect(() => {
   }
 })
 watchEffect(() => {
-  calculateDateRange(dateRange.value, +timeIntervalLabel[timeInterval.value])
+  calculateDateRange(dateRange.value, +timeIntervalLabel[timeInterval.value], selectedRegion.value)
   stopPlaying()
 })
 watchEffect(() => {
