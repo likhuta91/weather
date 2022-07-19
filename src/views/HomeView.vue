@@ -11,6 +11,7 @@
             <v-img
               class="weather-image"
               :src='currentWeather.url'
+              :lazy-src="nextWeather.url"
             />
           </v-col>
           <v-col sm="5" cols="12">
@@ -159,6 +160,9 @@ const weatherMeta = ref<DateMeta[]>([])
 
 const currentWeather = computed(() => {
   return weatherMeta.value[currentIndex.value] || {}
+})
+const nextWeather = computed(() => {
+  return weatherMeta.value[currentIndex.value + 1] || {}
 })
 const isLastMeta = computed(() => {
   return currentIndex.value === weatherMeta.value.length - 1
