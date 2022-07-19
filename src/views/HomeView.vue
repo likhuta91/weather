@@ -25,11 +25,13 @@
                 order="2"
                 order-sm="1"
               >
+                <div class="text-body-1">Region</div>
                 <v-select
                   v-model:model-value="selectedRegion"
                   :items="regions"
                   variant="outlined"
                   color="primary"
+                  hide-details
                 />
               </v-col>
               <v-col
@@ -121,6 +123,7 @@
                   :icon="isPlayed? 'mdi-pause' : 'mdi-play'"
                   :disabled="isLastMeta"
                   @click="onTogglePlay"
+                  color="primary"
                 />
                 <v-btn
                   :disabled="isLastMeta"
