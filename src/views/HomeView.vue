@@ -17,7 +17,12 @@
             <v-row
               no-gutters
             >
-              <v-col cols="12" class="d-flex flex-column justify-center my-2">
+              <v-col
+                cols="12"
+                class="d-flex flex-column justify-center my-2"
+                order="2"
+                order-sm="1"
+              >
                 <div class="text-body-1">Time range (hours)</div>
                 <v-slider
                   v-model="timeInterval"
@@ -30,7 +35,12 @@
                   hide-details
                 ></v-slider>
               </v-col>
-              <v-col cols="12" class="d-flex flex-column justify-center my-2">
+              <v-col
+                cols="12"
+                class="d-flex flex-column justify-center my-2"
+                order="3"
+                order-sm="2"
+              >
                 <div class="text-body-1">Update frequency (milliseconds)</div>
                 <v-slider
                   v-model="updateFrequency"
@@ -53,7 +63,12 @@
                   </template>
                 </v-slider>
               </v-col>
-              <v-col cols="12" class="d-flex justify-center my-2">
+              <v-col
+                cols="12"
+                class="d-flex justify-center my-2"
+                order="4"
+                order-sm="3"
+              >
                 <date-picker
                   v-model="dateRange"
                   format="DD-MM-YYYY"
@@ -61,7 +76,18 @@
                   :max-date="new Date()"
                 />
               </v-col>
-              <v-col cols="12" class="d-flex justify-center my-2">
+              <v-col
+                cols="12"
+                class="d-flex justify-center my-2"
+                order="1"
+                order-sm="4"
+              >
+                <v-btn
+                  :disabled="currentIndex === 0"
+                  @click="onClickReturnToStart"
+                  icon="mdi-keyboard-return"
+                  color="primary"
+                />
                 <v-btn
                   :disabled="currentIndex === 0"
                   @click="onClickPrevDay"
@@ -126,7 +152,9 @@ const updateFrequency = ref<number>(200)
 let interval = 0
 const timeInterval = ref<number>(0)
 const isPlayed = ref<boolean>(false)
-const dateRange = ref<DateRangeType>({ start: new Date(2022, 6, 1), end: new Date(2022, 6, 2)})
+const newDate = new Date()
+newDate.setDate(newDate.getDate() - 1);
+const dateRange = ref<DateRangeType>({ start: newDate, end: new Date()})
 const weatherMeta = ref<DateMeta[]>([])
 
 const currentWeather = computed(() => {
@@ -136,14 +164,22 @@ const isLastMeta = computed(() => {
   return currentIndex.value === weatherMeta.value.length - 1
 })
 
+function onClickReturnToStart() {
+  if(isPlayed.value) {
+    stopPlaying()
+  }
+  currentIndex.value = 0
+}
+
 function onClickPrevDay() {
   if(isPlayed.value) {
     stopPlaying()
   }
-  if(currentIndex.value - 24 <= 0) {
+  const countTimeIntervalsInOneDay = 24 / +timeIntervalLabel[timeInterval.value]
+  if(currentIndex.value - countTimeIntervalsInOneDay <= 0) {
     currentIndex.value = 0
   } else {
-    currentIndex.value = currentIndex.value - 24
+    currentIndex.value = currentIndex.value - countTimeIntervalsInOneDay
   }
 }
 
@@ -176,10 +212,11 @@ function onClickNextDay() {
   if(isPlayed.value) {
     stopPlaying()
   }
-  if(currentIndex.value + 24 > weatherMeta.value.length - 1) {
+  const countTimeIntervalsInOneDay = 24 / +timeIntervalLabel[timeInterval.value]
+  if(currentIndex.value + countTimeIntervalsInOneDay > weatherMeta.value.length - 1) {
     currentIndex.value = weatherMeta.value.length - 1
   } else {
-    currentIndex.value = currentIndex.value + 24
+    currentIndex.value = currentIndex.value + countTimeIntervalsInOneDay
   }
 }
 
@@ -194,9 +231,10 @@ function calculateDateRange(dateRange: DateRangeType, timeInterval: number) {
     dateRange.end,
     "DD-MM-YYYY"
   );
-  for (let i = parsedStartDate; i.isBefore(parsedEndDate); i.add(1, "days")) {
+  for (let i = parsedStartDate; i.isSameOrBefore(parsedEndDate); i.add(1, "days")) {
     const date = i.format('DD-MM-YYYY');
-    for (let hour = 0; hour < 24; hour = hour + timeInterval) {
+    const hoursInDay = i.isSame(parsedEndDate) ? new Date().getHours() - 2: 24
+    for (let hour = 0; hour < hoursInDay; hour = hour + timeInterval) {
       const time = hour < 10 ? `0${hour}` : `${hour}`;
       const url = `https://www.meteociel.fr/cartes_obs/archives/${date}/temp_sp-${time}.png`
       weatherMeta.value.push({
