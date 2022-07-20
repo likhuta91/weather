@@ -3,7 +3,7 @@
       <v-card elevation="0">
         <v-row>
           <v-col sm="7" cols="12" class="d-flex flex-column">
-            <h1 class="text-h3 mx-auto">Temperature in {{selectedRegionTitle}}</h1>
+            <h1 class="text-h3 mx-auto">{{selectedWeatherParameterTitle}} in {{selectedRegionTitle}}</h1>
             <h2 class="text-h4 font-weight-bold mx-auto current-date">
               {{currentWeather.date}}
               {{currentWeather.time}}:00
@@ -25,10 +25,25 @@
                 order="2"
                 order-sm="1"
               >
+                <div class="text-body-1">Weather parameter</div>
+                <v-select
+                  v-model:model-value="selectedWeatherParameter"
+                  :items="weatherParameters"
+                  variant="outlined"
+                  color="primary"
+                  hide-details
+                />
+              </v-col>
+              <v-col
+                cols="12"
+                class="d-flex flex-column justify-center my-2"
+                order="2"
+                order-sm="1"
+              >
                 <div class="text-body-1">Region</div>
                 <v-select
                   v-model:model-value="selectedRegion"
-                  :items="regions"
+                  :items="currentWeatherConfig.regions"
                   variant="outlined"
                   color="primary"
                   hide-details
@@ -43,7 +58,7 @@
                 <div class="text-body-1">Time range (hours)</div>
                 <v-slider
                   v-model="timeInterval"
-                  :ticks="timeIntervalLabel"
+                  :ticks="currentWeatherConfig.timeIntervals"
                   :max="7"
                   step="1"
                   show-ticks="always"
@@ -156,23 +171,15 @@ type DateRangeType = {start: Date, end: Date}
 import { ref, computed, watchEffect } from "vue";
 import moment from "moment";
 import { DatePicker } from 'v-calendar';
-const timeIntervalLabel: Record<number, string> = {
-  0: '1',
-  1: '2',
-  2: '3',
-  3: '4',
-  4: '6',
-  5: '8',
-  6: '12',
-  7: '24',
-}
-const regions: {value: string, title: string}[] = [
-  {value: 'sp', title: 'Spain'},
-  {value: 'eur2', title: 'Europe'},
-  {value: 'it', title: 'Italy'},
+import {temperatureConfig, solarLightingConfig, WeatherConfig} from './weatherHelper'
+
+const weatherParameters: {value: string, title: string, config: WeatherConfig}[] = [
+  {value: 'temp', title: 'Temperature', config: temperatureConfig},
+  {value: 'enso', title: 'Solar lighting', config: solarLightingConfig},
 ]
 
-const selectedRegion = ref<string>(regions[0].value)
+const selectedWeatherParameter = ref<string>(weatherParameters[0].value)
+const selectedRegion = ref<string>('')
 const currentIndex = ref<number>(0)
 const updateFrequency = ref<number>(200)
 let interval = 0
@@ -193,7 +200,15 @@ const isLastMeta = computed(() => {
   return currentIndex.value === weatherMeta.value.length - 1
 })
 const selectedRegionTitle = computed(() => {
-  return regions.find(el => el.value === selectedRegion.value)?.title
+  return currentWeatherConfig.value?.regions.find(el => el.value === selectedRegion.value)?.title
+})
+const selectedWeatherParameterTitle = computed(() => {
+  const title = weatherParameters.find(el => el.value === selectedWeatherParameter.value)?.title
+  return title || weatherParameters[0].title
+})
+const currentWeatherConfig = computed(() => {
+  const config = weatherParameters.find(el => el.value === selectedWeatherParameter.value)?.config
+  return config || weatherParameters[0].config
 })
 
 function onClickReturnToStart() {
@@ -207,7 +222,7 @@ function onClickPrevDay() {
   if(isPlayed.value) {
     stopPlaying()
   }
-  const countTimeIntervalsInOneDay = 24 / +timeIntervalLabel[timeInterval.value]
+  const countTimeIntervalsInOneDay = 24 / +currentWeatherConfig.value.timeIntervals[timeInterval.value]
   if(currentIndex.value - countTimeIntervalsInOneDay <= 0) {
     currentIndex.value = 0
   } else {
@@ -244,7 +259,7 @@ function onClickNextDay() {
   if(isPlayed.value) {
     stopPlaying()
   }
-  const countTimeIntervalsInOneDay = 24 / +timeIntervalLabel[timeInterval.value]
+  const countTimeIntervalsInOneDay = 24 / +currentWeatherConfig.value.timeIntervals[timeInterval.value]
   if(currentIndex.value + countTimeIntervalsInOneDay > weatherMeta.value.length - 1) {
     currentIndex.value = weatherMeta.value.length - 1
   } else {
@@ -252,7 +267,7 @@ function onClickNextDay() {
   }
 }
 
-function calculateDateRange(dateRange: DateRangeType, timeInterval: number, region: string) {
+function calculateDateRange(dateRange: DateRangeType, timeInterval: number, region: string, weatherParameter: string) {
   currentIndex.value = 0
   weatherMeta.value = []
   const parsedStartDate = moment(
@@ -268,12 +283,18 @@ function calculateDateRange(dateRange: DateRangeType, timeInterval: number, regi
     const hoursInDay = i.isSame(parsedEndDate) ? new Date().getHours() - 2: 24
     for (let hour = 0; hour < hoursInDay; hour = hour + timeInterval) {
       const time = hour < 10 ? `0${hour}` : `${hour}`;
-      const url = `https://www.meteociel.fr/cartes_obs/archives/${date}/temp_${region}-${time}.png`
-      weatherMeta.value.push({
-        url,
-        date,
-        time
-      });
+      if(currentWeatherConfig.value) {
+        const url = currentWeatherConfig.value.builderUrl({
+          date,
+          region,
+          time,
+        })
+        weatherMeta.value.push({
+          url,
+          date,
+          time
+        })
+      }
     }
   }
 }
@@ -289,12 +310,17 @@ watchEffect(() => {
   }
 })
 watchEffect(() => {
-  calculateDateRange(dateRange.value, +timeIntervalLabel[timeInterval.value], selectedRegion.value)
+  calculateDateRange(dateRange.value, +currentWeatherConfig.value.timeIntervals[timeInterval.value], selectedRegion.value, selectedWeatherParameter.value)
   stopPlaying()
 })
 watchEffect(() => {
   if(updateFrequency.value) {
     stopPlaying()
+  }
+})
+watchEffect(() => {
+  if(currentWeatherConfig.value) {
+    selectedRegion.value = currentWeatherConfig.value.regions[0].value
   }
 })
 </script>
