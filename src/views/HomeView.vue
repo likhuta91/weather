@@ -171,11 +171,12 @@ type DateRangeType = {start: Date, end: Date}
 import { ref, computed, watchEffect } from "vue";
 import moment from "moment";
 import { DatePicker } from 'v-calendar';
-import {temperatureConfig, solarLightingConfig, WeatherConfig} from './weatherHelper'
+import {temperatureConfig, solarLightingConfig, WeatherConfig, rainConfig} from './weatherHelper'
 
 const weatherParameters: {value: string, title: string, config: WeatherConfig}[] = [
   {value: 'temp', title: 'Temperature', config: temperatureConfig},
   {value: 'enso', title: 'Solar lighting', config: solarLightingConfig},
+  {value: 'rr2', title: 'Rain', config: rainConfig},
 ]
 
 const selectedWeatherParameter = ref<string>(weatherParameters[0].value)
